@@ -38,12 +38,12 @@ void MX_QUADSPI_Init(void)
 
   /* USER CODE END QUADSPI_Init 1 */
   hqspi.Instance = QUADSPI;
-  hqspi.Init.ClockPrescaler = 255;
+  hqspi.Init.ClockPrescaler = 5;
   hqspi.Init.FifoThreshold = 1;
   hqspi.Init.SampleShifting = QSPI_SAMPLE_SHIFTING_NONE;
   hqspi.Init.FlashSize = 1;
   hqspi.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_1_CYCLE;
-  hqspi.Init.ClockMode = QSPI_CLOCK_MODE_0;
+  hqspi.Init.ClockMode = QSPI_CLOCK_MODE_3;
   hqspi.Init.FlashID = QSPI_FLASH_ID_1;
   hqspi.Init.DualFlash = QSPI_DUALFLASH_DISABLE;
   if (HAL_QSPI_Init(&hqspi) != HAL_OK)
@@ -90,6 +90,8 @@ void HAL_QSPI_MspInit(QSPI_HandleTypeDef* qspiHandle)
     PC9     ------> QUADSPI_BK1_IO0
     PA1     ------> QUADSPI_BK1_IO3
     PB2     ------> QUADSPI_CLK
+    PE8     ------> QUADSPI_BK2_IO1
+    PE7     ------> QUADSPI_BK2_IO0
     */
     GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_9;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -126,6 +128,13 @@ void HAL_QSPI_MspInit(QSPI_HandleTypeDef* qspiHandle)
     GPIO_InitStruct.Alternate = GPIO_AF9_QUADSPI;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+    GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_7;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF10_QUADSPI;
+    HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
   /* USER CODE BEGIN QUADSPI_MspInit 1 */
 
   /* USER CODE END QUADSPI_MspInit 1 */
@@ -150,12 +159,14 @@ void HAL_QSPI_MspDeInit(QSPI_HandleTypeDef* qspiHandle)
     PC9     ------> QUADSPI_BK1_IO0
     PA1     ------> QUADSPI_BK1_IO3
     PB2     ------> QUADSPI_CLK
+    PE8     ------> QUADSPI_BK2_IO1
+    PE7     ------> QUADSPI_BK2_IO0
     */
     HAL_GPIO_DeInit(GPIOC, GPIO_PIN_10|GPIO_PIN_9);
 
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_6|GPIO_PIN_2);
 
-    HAL_GPIO_DeInit(GPIOE, GPIO_PIN_2);
+    HAL_GPIO_DeInit(GPIOE, GPIO_PIN_2|GPIO_PIN_8|GPIO_PIN_7);
 
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_1);
 

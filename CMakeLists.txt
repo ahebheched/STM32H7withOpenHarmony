@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.22)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 
@@ -36,18 +36,20 @@ enable_language(C CXX ASM)
 project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
-# Create an executable object type
-add_executable(${CMAKE_PROJECT_NAME}
-        User/Libs/GFX/CO5300_driver.h
-        User/Libs/GFX/CO5300_driver.cpp)
+#how to create a GLOB_RECURSE for all files in User directory
+
+include_directories(User/Code User/Libs/GFX)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
 
+file(GLOB_RECURSE SOURCES "User/*.*")
+# Create an executable object type
+add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
+
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
-        User/Libs/GFX
 )
 
 # Add sources to executable

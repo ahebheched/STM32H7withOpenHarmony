@@ -4,8 +4,6 @@
  */
 #pragma once
 
-#include <cstdint>
-
 #define CO5300_MAXWIDTH 480  ///< CO5300 max TFT width
 #define CO5300_MAXHEIGHT 480 ///< CO5300 max TFT width
 
@@ -120,59 +118,26 @@ enum
     CO5300_HighContrast
 };
 
-static const uint8_t co5300_init_operations[] = {
-        BEGIN_WRITE,
-        WRITE_COMMAND_8, CO5300_C_SLPOUT, // Sleep Out
-        END_WRITE,
+#define INIT_DAT_LEN (30)
+extern "C"{
+#include "stdint.h"
+}
 
-        DELAY, CO5300_SLPOUT_DELAY,
+typedef struct
+{
+    uint8_t cmd;
+    uint8_t len;
+    uint8_t data[INIT_DAT_LEN];
+}init_line_t;
 
-        BEGIN_WRITE,
-        // WRITE_C8_D8, CO5300_WC_TEARON, 0x00,
-        WRITE_C8_D8, 0xFE, 0x00,
-        WRITE_C8_D8, CO5300_W_SPIMODECTL, 0x80,
-        // WRITE_C8_D8, CO5300_W_MADCTL, CO5300_MADCTL_COLOR_ORDER, // RGB/BGR
-        WRITE_C8_D8, CO5300_W_PIXFMT, 0x55, // Interface Pixel Format 16bit/pixel
-        // WRITE_C8_D8, CO5300_W_PIXFMT, 0x66, // Interface Pixel Format 18bit/pixel
-        // WRITE_C8_D8, CO5300_W_PIXFMT, 0x77, // Interface Pixel Format 24bit/pixel
-        WRITE_C8_D8, CO5300_W_WCTRLD1, 0x20,
-        WRITE_C8_D8, CO5300_W_WDBRIGHTNESSVALHBM, 0xFF,
-        WRITE_COMMAND_8, CO5300_C_DISPON, // Display ON
-        WRITE_C8_D8, CO5300_W_WDBRIGHTNESSVALNOR, 0xD0, // Brightness adjustment
-
-        // High contrast mode (Sunlight Readability Enhancement)
-        WRITE_C8_D8, CO5300_W_WCE, 0x00, // Off
-        // WRITE_C8_D8, CO5300_W_WCE, 0x05, // On Low
-        // WRITE_C8_D8, CO5300_W_WCE, 0x06, // On Medium
-        // WRITE_C8_D8, CO5300_W_WCE, 0x07, // On High
-
-        END_WRITE,
-
-        DELAY, 10};
-
-class Arduino_CO5300 : public Arduino_TFT
+#ifdef __cplusplus
+class CO5300
 {
 public:
-    Arduino_CO5300(
-            Arduino_DataBus *bus, int8_t rst = GFX_NOT_DEFINED, uint8_t r = 0,
-            bool ips = false, int16_t w = CO5300_MAXWIDTH, int16_t h = CO5300_MAXHEIGHT,
-            uint8_t col_offset1 = 0, uint8_t row_offset1 = 0, uint8_t col_offset2 = 0, uint8_t row_offset2 = 0);
+    CO5300();
 
-    bool begin(int32_t speed = GFX_NOT_DEFINED) override;
-
-    void setRotation(uint8_t r) override;
-
-    void writeAddrWindow(int16_t x, int16_t y, uint16_t w, uint16_t h) override;
-
-    void invertDisplay(bool) override;
-    void displayOn() override;
-    void displayOff() override;
-
-    void setBrightness(uint8_t brightness);
-    void setContrast(uint8_t Contrast);
-
-protected:
-    void tftInit() override;
+    void init();
 
 private:
 };
+#endif
