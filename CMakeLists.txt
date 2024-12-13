@@ -38,7 +38,7 @@ message("Build type: " ${CMAKE_BUILD_TYPE})
 
 #how to create a GLOB_RECURSE for all files in User directory
 
-include_directories(User/Code User/Libs/GFX)
+include_directories(User/Code User/Libs/GFX User/Libs/QSPI)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)

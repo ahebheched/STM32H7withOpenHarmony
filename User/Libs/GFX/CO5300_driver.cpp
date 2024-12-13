@@ -6,64 +6,93 @@
 #include "CO5300_driver.h"
 #include "quadspi.h"
 
-CO5300::CO5300() {
-
+CO5300::CO5300(QSPI *qspi, GPIO_TypeDef *rst_port, uint16_t rst_pin) {
+    this->qspi = qspi;
+    this->rst_port = rst_port;
+    this->rst_pin = rst_pin;
 }
 
-void sendCommand(init_line_t command) {
-    if(command.cmd == 0){
-        HAL_Delay(command.data[0]);
-    }
-    else{
-        QSPI_CommandTypeDef sCommand;
-        sCommand.Instruction = 0x02;
-//        sCommand.AddressMode = QSPI_ADDRESS_4_LINES;
-        sCommand.AddressSize = QSPI_ADDRESS_24_BITS;
-        sCommand.Address = command.cmd << 8;
-        if(command.len){
-            sCommand.DataMode = QSPI_ADDRESS_4_LINES;
-            sCommand.NbData = command.len;
-            sCommand.DummyCycles = 0;
-            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
-            if(HAL_QSPI_Command(&hqspi, &sCommand, 0xFF) != HAL_OK){
-                printf("Command failed\n");
-            }
-            if(HAL_QSPI_Transmit(&hqspi, command.data, 0xFF) != HAL_OK){
-                printf("Transmit failed\n");
-            }
-
-            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
-        } else{
-            sCommand.DataMode = QSPI_DATA_NONE;
-            sCommand.DummyCycles = 0;
-            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
-            if(HAL_QSPI_Command(&hqspi, &sCommand, 0xFF) != HAL_OK){
-                printf("0 Command failed\n");
-            }
-            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
-//            HAL_QSPI_Transmit_IT(&hqspi, command.data);
-        }
-    }
-}
-
-init_line_t init_operations[] = {
-        {CO5300_C_SLPOUT, 0, {0}},
-        {0x00, 1, {CO5300_SLPOUT_DELAY}},
-        {0xFE, 1, {0}},
-        {CO5300_W_SPIMODECTL, 1, {0x80}},
-        {CO5300_W_PIXFMT, 1, {0x55}},
-        {CO5300_W_WCTRLD1, 1, {0x20}},
-        {CO5300_W_WDBRIGHTNESSVALHBM, 1, {0xFF}},
-        {CO5300_C_DISPON, 0, {0}},
-        {CO5300_W_WDBRIGHTNESSVALNOR, 1, {0xD0}},
-        {CO5300_W_WCE, 1, {0x00}},
-        {0, 1, {10}}
-};
-
-void CO5300::init() {
+int CO5300::CO5300::init(uint16_t width, uint16_t height) {
     // Initialize the QSPI
-    for(const auto & init_operation : init_operations){
-        sendCommand(init_operation);
+    init_line_t init_operations[] = {
+            {CO5300_C_SLPOUT,             0, {0}},
+            {0x00,                        1, {CO5300_SLPOUT_DELAY}},
+            {0xFE,                        1, {0}},
+            {CO5300_W_SPIMODECTL,         1, {0x80}},
+            {CO5300_W_PIXFMT,             1, {0x55}},
+            {CO5300_W_WCTRLD1,            1, {0x20}},
+            {CO5300_W_WDBRIGHTNESSVALHBM, 1, {0xFF}},
+            {CO5300_C_DISPON,             0, {0}},
+            {CO5300_W_WDBRIGHTNESSVALNOR, 1, {0xD0}},
+            {CO5300_W_WCE,                1, {0x00}},
+            {0,                           1, {10}}
+    };
+
+    //rst the co5300 ic
+    HAL_GPIO_WritePin(this->rst_port, this->rst_pin, GPIO_PIN_SET);
+    HAL_Delay(10);
+    HAL_GPIO_WritePin(this->rst_port, this->rst_pin, GPIO_PIN_RESET);
+    HAL_Delay(CO5300_RST_DELAY);
+    HAL_GPIO_WritePin(this->rst_port, this->rst_pin, GPIO_PIN_SET);
+    HAL_Delay(CO5300_RST_DELAY);
+
+    int init_state = this->qspi->sendCommandList(init_operations, sizeof(init_operations) / sizeof(init_line_t));
+    if (init_state != HAL_OK) {
+        int error_position = init_state & 0xFF;
+        int error_code1 = (init_state >> 8) & 0xFF;
+        int error_code2 = (init_state >> 16) & 0xFF;
+        printf("CO5300 init failed, error position: %d, error code1: %d, error code2: %d\n", error_position,
+               error_code1, error_code2);
     }
-    sendCommand({CO5300_C_ALLPON, 0, {0}});
+    HAL_Delay(1);
+
+    init_state = this->qspi->sendCommand(CO5300_C_INVOFF);
+    if (init_state != HAL_OK) {
+        printf("CO5300 init invert failed, error code:%d\n", init_state);
+    }
+    HAL_Delay(1);
+
+    init_state = this->qspi->sendCommand(CO5300_W_MADCTL, CO5300_MADCTL_COLOR_ORDER | CO5300_MADCTL_X_AXIS_FLIP |
+                                                          CO5300_MADCTL_Y_AXIS_FLIP);
+    if (init_state != HAL_OK) {
+        printf("CO5300 init rotation failed, error code:%d\n", init_state);
+    }
+    HAL_Delay(1);
+
+    init_state = this->qspi->sendCommand(CO5300_W_CASET, (uint16_t)0, width - 1);
+    if (init_state != HAL_OK) {
+        printf("CO5300 init w CASET failed, error code:%d\n", init_state);
+    }
+    HAL_Delay(1);
+
+    init_state = this->qspi->sendCommand(CO5300_W_PASET, (uint16_t)0, height - 1);
+    if (init_state != HAL_OK) {
+        printf("CO5300 init w PASET failed, error code:%d\n", init_state);
+    }
+    HAL_Delay(1);
+
+    init_state = this->qspi->sendCommand(CO5300_W_RAMWR);
+    if (init_state != HAL_OK) {
+        printf("CO5300 init w RAMWR failed, error code:%d\n", init_state);
+    }
+
+    return init_state;
 }
+
+int CO5300::set_brightness(uint8_t brightness) {
+    return this->qspi->sendCommand(CO5300_W_WDBRIGHTNESSVALNOR, brightness);
+}
+
+int CO5300::display_on() {
+    int state = this->qspi->sendCommand(CO5300_C_DISPON);
+    if (state != HAL_OK) {
+        printf("CO5300 display on failed, error code:%d\n", state);
+    }
+    HAL_Delay(CO5300_SLPIN_DELAY);
+    state = this->qspi->sendCommand(CO5300_C_SLPOUT);
+    if (state != HAL_OK) {
+        printf("CO5300 display sleep out failed, error code:%d\n", state);
+    }
+    return state;
+}
+

@@ -118,26 +118,27 @@ enum
     CO5300_HighContrast
 };
 
-#define INIT_DAT_LEN (30)
-extern "C"{
-#include "stdint.h"
-}
-
-typedef struct
-{
-    uint8_t cmd;
-    uint8_t len;
-    uint8_t data[INIT_DAT_LEN];
-}init_line_t;
+#include <cstdint>
 
 #ifdef __cplusplus
+
+#include "qspi.h"
+
 class CO5300
 {
 public:
-    CO5300();
+    CO5300() = default;
+    explicit CO5300(QSPI *qspi, GPIO_TypeDef *rst_port, uint16_t rst_pin);
 
-    void init();
+    int init(uint16_t width = CO5300_MAXWIDTH, uint16_t height = CO5300_MAXHEIGHT);
+
+    int display_on();
+
+    int set_brightness(uint8_t brightness);
 
 private:
+    QSPI *qspi;
+    GPIO_TypeDef *rst_port;
+    uint16_t rst_pin;
 };
 #endif
