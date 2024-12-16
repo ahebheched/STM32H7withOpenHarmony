@@ -110,8 +110,7 @@
 #define CO5300_MADCTL_BGR 0x08                      // Blue-Green-Red pixel order
 #define CO5300_MADCTL_COLOR_ORDER CO5300_MADCTL_RGB // RGB
 
-enum
-{
+enum {
     CO5300_ContrastOff = 0,
     CO5300_LowContrast,
     CO5300_MediumContrast,
@@ -124,21 +123,78 @@ enum
 
 #include "qspi.h"
 
-class CO5300
-{
+static const uint8_t co5300_init_operations[] = {
+
+        BEGIN_WRITE,
+
+        WRITE_COMMAND_8, CO5300_C_SLPOUT, // Sleep Out
+
+        END_WRITE,
+
+        DELAY, CO5300_SLPOUT_DELAY,
+
+        BEGIN_WRITE,
+
+        // WRITE_C8_D8, CO5300_WC_TEARON, 0x00,
+
+        WRITE_C8_D8, 0xFE, 0x00,
+
+        WRITE_C8_D8, CO5300_W_SPIMODECTL, 0x80,
+
+        // WRITE_C8_D8, CO5300_W_MADCTL, CO5300_MADCTL_COLOR_ORDER, // RGB/BGR
+
+//        WRITE_C8_D8, CO5300_W_PIXFMT, 0x55, // Interface Pixel Format 16bit/pixel
+        // WRITE_C8_D8, CO5300_W_PIXFMT, 0x66, // Interface Pixel Format 18bit/pixel
+         WRITE_C8_D8, CO5300_W_PIXFMT, 0x77, // Interface Pixel Format 24bit/pixel
+
+        WRITE_C8_D8, CO5300_W_WCTRLD1, 0x20,
+
+        WRITE_C8_D8, CO5300_W_WDBRIGHTNESSVALHBM, 0xFF,
+
+        WRITE_COMMAND_8, CO5300_W_CASET,
+        WRITE_BYTES, 4,
+        0x00, 0x14, 0x01, 0x2B,
+
+        WRITE_COMMAND_8, CO5300_W_PASET,
+        WRITE_BYTES, 4,
+        0x00, 0x00, 0x01, 0xC7,
+
+        WRITE_COMMAND_8, CO5300_C_DISPON, // Display ON
+
+        WRITE_C8_D8, CO5300_W_WDBRIGHTNESSVALNOR, 0x00, // Brightness adjustment
+
+        // High contrast mode (Sunlight Readability Enhancement)
+        WRITE_C8_D8, CO5300_W_WCE, 0x00, // Off
+        // WRITE_C8_D8, CO5300_W_WCE, 0x05, // On Low
+        // WRITE_C8_D8, CO5300_W_WCE, 0x06, // On Medium
+        // WRITE_C8_D8, CO5300_W_WCE, 0x07, // On High
+
+        END_WRITE,
+
+        DELAY, 10};
+
+class CO5300 {
 public:
     CO5300() = default;
-    explicit CO5300(QSPI *qspi, GPIO_TypeDef *rst_port, uint16_t rst_pin);
 
-    int init(uint16_t width = CO5300_MAXWIDTH, uint16_t height = CO5300_MAXHEIGHT);
+//    explicit CO5300(QSPI *qspi, GPIO_TypeDef *rst_port, uint16_t rst_pin);
+    explicit CO5300(QSPI *qspi, GPIO_TypeDef *rst_port, uint16_t rst_pin, uint16_t width = CO5300_MAXWIDTH,
+                    uint16_t height = CO5300_MAXHEIGHT);
+
+    int init();
 
     int display_on();
 
     int set_brightness(uint8_t brightness);
 
+    int draw_pixel888(uint16_t x, uint16_t y, uint32_t color);
+
 private:
     QSPI *qspi;
     GPIO_TypeDef *rst_port;
     uint16_t rst_pin;
+
+    uint16_t _width, _height;
 };
+
 #endif
