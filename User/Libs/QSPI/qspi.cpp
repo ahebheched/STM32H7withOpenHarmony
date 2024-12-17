@@ -3,18 +3,19 @@
 //
 
 #include <cstdio>
+#include <cstring>
 #include "qspi.h"
 
 QSPI::QSPI(QSPI_HandleTypeDef *hqspi) {
     this->hqspi = hqspi;
 }
 
-HAL_StatusTypeDef QSPI::QSPI_HAL_Command(QSPI_CommandTypeDef *cmd) const{
+HAL_StatusTypeDef QSPI::QSPI_HAL_Command(QSPI_CommandTypeDef *cmd) const {
     return HAL_QSPI_Command(this->hqspi, cmd, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
 //    return HAL_QSPI_Command_IT(this->hqspi, cmd);
 }
 
-HAL_StatusTypeDef QSPI::QSPI_HAL_Transmit(uint8_t *pData) const{
+HAL_StatusTypeDef QSPI::QSPI_HAL_Transmit(uint8_t *pData) const {
     return HAL_QSPI_Transmit(this->hqspi, pData, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
 //    return HAL_QSPI_Transmit_IT(this->hqspi, pData);
 }
@@ -120,7 +121,7 @@ int QSPI::sendCommand(uint8_t cmd, uint8_t data) {
     sCommand.DdrHoldHalfCycle = QSPI_DDR_HHC_ANALOG_DELAY;
     sCommand.SIOOMode = QSPI_SIOO_INST_EVERY_CMD;
 
-    sCommand.DataMode = QSPI_DATA_1_LINE;
+    sCommand.DataMode = QSPI_DATA_4_LINES;
     sCommand.DummyCycles = 0;
     sCommand.NbData = 1;
 
@@ -221,54 +222,71 @@ int QSPI::sendCommandList(init_line_t *init_operations, uint8_t len) {
 }
 
 int QSPI::sendCommandList2(const uint8_t *operations, size_t len) {
-    for (size_t i = 0; i < len; ++i)
-    {
+    for (size_t i = 0; i < len; ++i) {
         uint8_t l = 0;
-        switch (operations[i])
-        {
+        uint8_t *_buffer;
+        uint8_t c[2];
+        switch (operations[i]) {
             case BEGIN_WRITE:
 //                beginWrite();
-                break;
-            case WRITE_C8_D16:
-
-                break;
-            case WRITE_C8_D8:
-//                writeC8D8(operations[++i], operations[++i]);
-                sendCommand(operations[++i]);
-                sendData(operations[++i]);
                 break;
             case WRITE_COMMAND_8:
 //                writeCommand(operations[++i]);
                 sendCommand(operations[++i]);
                 break;
-            case WRITE_C16_D16:
-
-                break;
-            case WRITE_COMMAND_16:
-
-                break;
-            case WRITE_DATA_8:
-                l = 1;
-                break;
-            case WRITE_DATA_16:
-                l = 2;
-                break;
+//            case WRITE_COMMAND_16:
+//                _data16.msb = operations[++i];
+//                _data16.lsb = operations[++i];
+//                writeCommand16(_data16.value);
+//                break;
+//            case WRITE_DATA_8:
+//                write(operations[++i]);
+//                break;
+//            case WRITE_DATA_16:
+//                _data16.msb = operations[++i];
+//                _data16.lsb = operations[++i];
+//                write16(_data16.value);
+//                break;
             case WRITE_BYTES:
                 l = operations[++i];
+                _buffer = new uint8_t[l];
+                memcpy(_buffer, operations + i + 1, l);
+//                printf("Writing %d bytes and data is: ", l);
+//                for (int j = 0; j < l; ++j) {
+//                    printf("%d ", _buffer[j]);
+//                }
+//                printf("\n");
+                i += l;
+//                writeBytes(_buffer, l);
+                sendData(_buffer, l);
+                delete[] _buffer;
+                break;
+            case WRITE_C8_D8:
+                l = operations[++i];
+//                writeC8D8(l, operations[++i]);
+                sendCommand(l, operations[++i]);
+                break;
+            case WRITE_C8_D16:
+                l = operations[++i];
+                _data16.msb = operations[++i];
+                _data16.lsb = operations[++i];
+                c[0] = (uint8_t) (_data16.value >> 8);
+                c[1] = (uint8_t) (_data16.value & 0xff);
+//                writeC8D16(l, _data16.value);
+                sendCommand(l, c, 2);
+                break;
+            case WRITE_C16_D16:
                 break;
             case END_WRITE:
 //                endWrite();
                 break;
             case DELAY:
+//                delay(operations[++i]);
                 HAL_Delay(operations[++i]);
                 break;
             default:
-                printf("Unknown operation id at %d: %d", i, operations[i]);
+                printf("Unknown operation id at %d: %d\n", i, operations[i]);
                 break;
-        }
-        while (l--)
-        {
-            sendData(operations[++i]);
         }
     }
     return 0;

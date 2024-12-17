@@ -235,16 +235,11 @@ void setup() {
 
     co5300.init();
 //    HAL_Delay(1);
-    co5300.display_on();
+//    co5300.display_on();
 //    HAL_Delay(1);
-    for(uint8_t i = 0; i < 16; i++){
-        for (int j = 0; j < 16; j++) {
-            co5300.draw_pixel888(i, j, 0x00FF00);
-        }
-    }
     co5300.set_brightness(100);
 }
-
+uint8_t test[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
 void loop() {
 //    for(uint8_t i = 100; i < 255; i++){
 //        HAL_Delay(200);
@@ -263,6 +258,13 @@ void loop() {
 //            AMOLED_DrawPoint(i, j, 0x00FFFF);
 //        }
 //    }
-    co5300.init();
+//    co5300.init();
+//    qspi.sendData(test, 8);
+//    HAL_QSPI_Transmit(&hqspi, test, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
+    for(uint8_t i = 10; i < 16; i++){
+        for (int j = 10; j < 16; j++) {
+            co5300.draw_pixel888(i, j, 0xF1F110);
+        }
+    }
     HAL_Delay(100);
 }

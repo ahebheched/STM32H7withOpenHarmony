@@ -48,8 +48,8 @@ int CO5300::CO5300::init() {
     HAL_GPIO_WritePin(this->rst_port, this->rst_pin, GPIO_PIN_SET);
     HAL_Delay(CO5300_RST_DELAY);
 
-    int init_state = this->qspi->sendCommandList(init_operations, sizeof(init_operations) / sizeof(init_line_t));
-//    int init_state = this->qspi->sendCommandList2((uint8_t *) co5300_init_operations, sizeof(co5300_init_operations));
+//    int init_state = this->qspi->sendCommandList(init_operations, sizeof(init_operations) / sizeof(init_line_t));
+    int init_state = this->qspi->sendCommandList2((uint8_t *) co5300_init_operations, sizeof(co5300_init_operations));
     if (init_state != HAL_OK) {
         int error_position = init_state & 0xFF;
         int error_code1 = (init_state >> 8) & 0xFF;
@@ -115,27 +115,28 @@ int CO5300::display_on() {
 }
 
 int CO5300::draw_pixel888(uint16_t x, uint16_t y, uint32_t color) {
-    int state = this->qspi->sendCommand(CO5300_W_CASET, x, x);
-    if (state != HAL_OK) {
-        printf("w CASET failed, error code:%d\n", state);
-    }
-//    HAL_Delay(1);
+//    int state = this->qspi->sendCommand(CO5300_W_CASET, x, x);
+//    if (state != HAL_OK) {
+//        printf("w CASET failed, error code:%d\n", state);
+//    }
+////    HAL_Delay(1);
+//
+//    state = this->qspi->sendCommand(CO5300_W_PASET, y, y);
+//    if (state != HAL_OK) {
+//        printf("w PASET failed, error code:%d\n", state);
+//    }
+////    HAL_Delay(1);
 
-    state = this->qspi->sendCommand(CO5300_W_PASET, y, y);
-    if (state != HAL_OK) {
-        printf("w PASET failed, error code:%d\n", state);
-    }
-//    HAL_Delay(1);
-
-    state = this->qspi->sendCommand(CO5300_W_RAMWR);
+    int state = this->qspi->sendCommand(CO5300_W_RAMWR);
     if (state != HAL_OK) {
         printf("w RAMWR failed, error code:%d\n", state);
     }
 //    HAL_Delay(1);
 
-    uint8_t color_data[2] = {(uint8_t) ((color >> 16) & 0xff), (uint8_t) ((color >> 8) & 0xff)};
-    state = this->qspi->sendCommandWithInstruction(0x32, CO5300_W_RAMWR, color_data, 2);
-    state = this->qspi->sendCommandWithInstruction(0x32, CO5300_W_WRMC, color_data, 2);
+    uint8_t color_data[3] = {(uint8_t) ((color >> 16) & 0xff), (uint8_t) ((color >> 8) & 0xff), (uint8_t) ((color >> 8) & 0xff)};
+    state = this->qspi->sendData(color_data, 3);
+//    state = this->qspi->sendCommandWithInstruction(0x32, CO5300_W_RAMWR, color_data, 2);
+//    state = this->qspi->sendCommandWithInstruction(0x32, CO5300_W_WRMC, color_data, 2);
     if (state != HAL_OK) {
         printf("w WRMC failed, error code:%d\n", state);
     }

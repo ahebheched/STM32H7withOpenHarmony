@@ -31,6 +31,16 @@ typedef enum
     DELAY,
 } spi_operation_type_t;
 
+union
+{
+    uint16_t value;
+    struct
+    {
+        uint8_t lsb;
+        uint8_t msb;
+    };
+} _data16;
+
 class QSPI {
 public:
     QSPI() = default;
